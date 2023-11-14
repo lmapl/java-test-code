@@ -47,57 +47,59 @@ import java.util.concurrent.locks.ReadWriteLock;
 import sun.misc.Unsafe;
 
 /**
- * Provides a framework for implementing blocking locks and related
- * synchronizers (semaphores, events, etc) that rely on (基于)
- * first-in-first-out (FIFO) wait queues.
+ * Provides a framework(框架) for implementing blocking locks(阻塞锁) and related
+ * synchronizers(相关的同步器条件) (semaphores信号, events事件, etc) that rely on (基于)
+ * first-in-first-out (FIFO) wait queues(先进先出等待队列).
  *
  * This class is designed to be a useful basis for most kinds of synchronizers
  * that rely on a single atomic {@code int} value（原子性的 int 值） to represent state (表示状态变化).
  *
- *
- * Subclasses (子类实现) must define the protected methods that change this state （修改状态值）,
- * and which define what that state means in terms of this object being acquired or released.
+ * Subclasses (子类实现) must define(重定义) the protected methods that change this state （修改状态值）,
+ * and which define what that state means in terms of this object being acquired or released(对象被锁定还是被释放).
  * state 值范围，定义了对象的被获得和被释放
  *
- * Given these, the other methods in this class carry out (执行完成) all queuing and blocking mechanics (工作).
+ * Given these(考虑到这些), the other methods in this class carry out (执行完成) all queuing and blocking mechanics (工作).
  *
- * Subclasses can maintain other state fields,
- * but only the atomically updated {@code int} value manipulated using methods {@link #getState},
- * {@link #setState} and {@link #compareAndSetState} is tracked with respect to synchronization.
+ * Subclasses can maintain(维护/持有) other state fields,
+ * but only the atomically updated(原子性的修改) {@code int} value manipulated using methods {@link #getState},
+ * {@link #setState} and {@link #compareAndSetState} is tracked with(被跟踪) respect to(关于同步) synchronization.
  *
  * <p>Subclasses should be defined as non-public internal helper
  * classes that are used to implement the synchronization properties
- * of their enclosing class.  Class
- * {@code AbstractQueuedSynchronizer} does not implement any
- * synchronization interface.  Instead it defines methods such as
- * {@link #acquireInterruptibly} that can be invoked as
+ * of their enclosing class(封闭类).
+ * Class {@code AbstractQueuedSynchronizer} does not implement any
+ * synchronization interface.
+ * Instead it defines methods such as {@link #acquireInterruptibly} that can be invoked as
  * appropriate by concrete locks and related synchronizers to
  * implement their public methods.
  *
- * <p>This class supports either or both a default <em>exclusive</em>
- * mode and a <em>shared</em> mode. When acquired in exclusive mode,
- * attempted acquires by other threads cannot succeed. Shared mode
- * acquires by multiple threads may (but need not) succeed. This class
- * does not &quot;understand&quot; these differences except in the
- * mechanical sense that when a shared mode acquire succeeds, the next
- * waiting thread (if one exists) must also determine whether it can
- * acquire as well. Threads waiting in the different modes share the
+ * <p>This class supports either or(要么…要么…) both a default <em>exclusive</em>
+ * mode and a <em>shared</em> mode. (要么是默认独占模式，要么是共享模式)
+ * When acquired in exclusive mode,attempted acquires by other threads cannot succeed.
+ * Shared mode acquires by multiple threads may (but need not) succeed.
+ * This class does not &quot;understand&quot;
+ * these differences except in the mechanical sense that when a shared mode acquire succeeds,
+ * the next waiting thread (if one exists) must also determine whether it can
+ * acquire as well.
+ * Threads waiting in the different modes share the
  * same FIFO queue. Usually, implementation subclasses support only
  * one of these modes, but both can come into play for example in a
  * {@link ReadWriteLock}. Subclasses that support only exclusive or
  * only shared modes need not define the methods supporting the unused mode.
  *
- * <p>This class defines a nested {@link ConditionObject} class that
- * can be used as a {@link Condition} implementation by subclasses
- * supporting exclusive mode for which method {@link
- * #isHeldExclusively} reports whether synchronization is exclusively
- * held with respect to the current thread, method {@link #release}
- * invoked with the current {@link #getState} value fully releases
- * this object, and {@link #acquire}, given this saved state value,
- * eventually restores this object to its previous acquired state.  No
- * {@code AbstractQueuedSynchronizer} method otherwise creates such a
- * condition, so if this constraint cannot be met, do not use it.  The
- * behavior of {@link ConditionObject} depends of course on the
+ * <p>This class defines a nested(内嵌的) {@link ConditionObject 条件对象} class
+ * that can be used as a {@link Condition 条件} implementation by subclasses
+ * supporting exclusive mode(由子类执行来支持独占模式)。
+ * for which(为此) method {@link #isHeldExclusively} reports whether synchronization(同步器) is
+ * exclusively held with respect to the current thread(当前线程是否独占式的持有同步器),
+ * method {@link #release} invoked with(调用) the current {@link #getState} value fully releases
+ * this object,
+ * and {@link #acquire}, given this saved state value,
+ * eventually(最后) restores(恢复) this object to its previous(上一次的) acquired(获得的) state.
+ *
+ * No {@code AbstractQueuedSynchronizer} method otherwise creates such a
+ * condition, so if this constraint cannot be met, do not use it.
+ * The behavior of {@link ConditionObject} depends of course on the
  * semantics of its synchronizer implementation.
  *
  * <p>This class provides inspection, instrumentation, and monitoring
@@ -295,6 +297,9 @@ import sun.misc.Unsafe;
  *
  * @since 1.5
  * @author Doug Lea
+ *
+ * 抽象队列同步器,简称 AQS;
+ * AQS 通过一个双向的先进先出（FIFO）队列（下称同步队列）来管理等待线程，如果某个线程发现前驱的线程释放了锁，便会获得锁。
  */
 public abstract class AbstractQueuedSynchronizer
     extends AbstractOwnableSynchronizer
@@ -308,6 +313,9 @@ public abstract class AbstractQueuedSynchronizer
      */
     protected AbstractQueuedSynchronizer() { }
 
+
+    ////////////------- 等待队列的 Node 介绍 ------ ////////////
+
     /**
      * Wait queue node class.
      * 等待队列的节点类定义
@@ -318,29 +326,28 @@ public abstract class AbstractQueuedSynchronizer
      * CLH locks are normally used for spinlocks.
      * CLH 锁结构被广泛的用于自旋锁
      * We instead use them for blocking synchronizers,
-     * 我们利用它们来替代 synchronizers 关键字的使用
+     * 我们用它们来替代 synchronizers 关键字的使用
      * but use the same basic tactic of holding some of the control information
      * about a thread in the predecessor of its node.
-     * 但是依旧使用了相同的策略在 thread 节点上保持了一些控制变量
+     * 但是其实还是使用了相同的策略: 在线程的前置节点上管理了一些控制变量
      * A "status" field in each node keeps track of whether a thread should block.
-     * 节点中的 status 变量的变化用于确定线程是否应该被阻塞
+     * 节点中的 status 的变化用于确定线程是否应该被阻塞
      *
      * A node is signalled when its predecessor releases.
-     * 当前节点的前置节点被释放时会发出信号通知当前节点
-     * Each node of the queue otherwise(除此之外) serves as(充当) a specific-notification-style monitor
+     * 当前置节点被释放时会发出信号通知当前节点
+     * Each node of the queue otherwise serves as a specific-notification-style monitor
      * holding a single waiting thread.
      * 节点除了充当一个特定通知模版的监听器以外，还持有一个单独的等待线程 thread
      * The status field does NOT control whether threads are granted locks(授予锁) etc though (等等).
-     * A thread may try to acquire if it is first in the queue.
-     * 队列 queue 的第一个节点线程将尝试获得锁
-     * But being first does not(不一定) guarantee(保证) success;
-     * it only gives the right to contend.
+     * A thread may try to acquire if it is first in the queue(队列的第一个线程可以尝试获取锁).
+     * But being first does not guarantee(不一定保证) success;
+     * it only gives the right to contend(竞争).
      * 在队列 queue 的第一个节点不能保证一定会成功获取锁，它只是赋予了权限去竞争锁
      * So the currently released contender thread may need to rewait.
      * 所以最近释放锁重新开始的竞争者线程都需要重新等待
      *
-     * <p>To enqueue(入队/插入队列) into a CLH lock, you atomically splice it in as new tail(队尾).
-     * To dequeue(出队), you just set the head field(对首).
+     * <p>To enqueue(进队) into a CLH lock, you atomically splice it in as new tail(原子性的添加在队尾).
+     * To dequeue(出队), you just set the head field(队首).
      *
      * <pre>
      *      +------+  prev +-----+       +-----+
@@ -350,63 +357,62 @@ public abstract class AbstractQueuedSynchronizer
      *
      * <p>
      * Insertion into a CLH queue requires only a single atomic operation(原子性操作) on "tail",
-     * so there is a simple atomic point of demarcation(划分/界线) from unqueued (未排队) to queued.
-     * Similarly(类似的), dequeuing(出列) involves only updating the "head".
-     * However, it takes a bit more work for nodes to determine(决定) who their successors(接替者) are,
-     * in part to deal with(部分处理) possible(可能的) cancellation due to timeouts and interrupts.
+     * so there is a simple atomic point of demarcation from unqueued to queued(从未排队到排队的界线).
+     * Similarly(类似的), dequeuing(出队) involves(需要) only updating the "head".
+     * However(然而), it takes a bit more work for nodes to determine(决定) who their successors(接替者) are,
+     * in part to deal with possible(可能的) cancellation due to timeouts and interrupts.
+     * 尤其还要处理可能存在的因为超时或者中断导致的删除操作
      *
      * <p>
      * The "prev" links (not used in original CLH locks), are mainly needed to handle cancellation.
-     * prev 引用主要用来处理节点的删除/撤销操作
+     * prev 引用主要用来处理节点的删除操作
      * If a node is cancelled, its successor is (normally) relinked to a non-cancelled predecessor.
-     * 如果一个节点被删除了，他的接替者一般要重新链接到另一个未被删除的前置节点
-     * For explanation of similar mechanics in the case of spin locks,
+     * 如果一个节点被删除了，它的接替者一般要重新链接到另一个未被删除的前置节点
+     * For explanation(解释) of similar mechanics(结构) in the case of spin locks(自旋锁),
      * see the papers by Scott and Scherer at
      * http://www.cs.rochester.edu/u/scott/synchronization/
      *
      * <p>
      * next 引用
      * We also use "next" links to implement blocking mechanics.
-     * 使用 next 引用实现阻塞机制
+     * 使用 next link 实现阻塞机制
      * The thread id for each node is kept in its own node,
      * so a predecessor signals the next node to wake up by traversing
      * next link to determine which thread it is.
-     * predecessor 遍历 next 引用来决定通知唤起的 下一个 node 节点线程
+     * 前置节点唤醒下一个 node 节点是通过 遍历 next 引用来确定后继者。
      *
-     * Determination of successor must avoid(避免/防止) races with(竞争) newly queued nodes(新节点) to set
-     * the "next" fields of their predecessors.
+     * Determination of successor must avoid races with(避免竞争) newly queued nodes(最近入队的新节点)
+     * to set the "next" fields of their predecessors.
+     * 找下一个接替者的时候必须要避免和新入队的节点的竞争;新入队的节点需要挂载在前置节点的next指针上，这会冲突；需要规避竞争；
      *
-     * This is solved(解决方案) when necessary by checking backwards from(倒退) the atomically
-     * updated "tail" when a node's successor appears to be null.
+     * This is solved(解决方案) when necessary by checking backwards from the atomically
+     * updated "tail" when a node's successor appears to(看似) be null.
+     * 这里有个解决方案是 当必要的时候可以通过 ??? 检查
      * (Or, said differently, the next-links are an optimization so that we don't usually need a backward scan.)
      *
      * <p>
      * Cancellation introduces some conservatism to the basic
-     * algorithms.  Since we must poll for cancellation of other
+     * algorithms.  Since we must poll for(投票) cancellation of other
      * nodes, we can miss noticing whether a cancelled node is
      * ahead or behind us. This is dealt with by always unparking
      * successors upon cancellation, allowing them to stabilize on
      * a new predecessor, unless we can identify an uncancelled
      * predecessor who will carry this responsibility.
      *
-     * <p>CLH queues need a dummy header node to get started. But
-     * we don't create them on construction, because it would be wasted
-     * effort if there is never contention. Instead, the node
-     * is constructed and head and tail pointers are set upon first
+     * <p>CLH queues need a dummy(假的) header node to get started.
+     * But we don't create them on construction(构造方法),
+     * because it would be wasted effort if there is never contention(因为如果没有竞争，那将是无用的).
+     * Instead(相反), the node is constructed and head and tail pointers are set upon first
      * contention.
      *
-     * <p>Threads waiting on Conditions use the same nodes, but
-     * use an additional link. Conditions only need to link nodes
-     * in simple (non-concurrent) linked queues because they are
-     * only accessed when exclusively held.  Upon await, a node is
-     * inserted into a condition queue.  Upon signal, the node is
-     * transferred to the main queue.  A special value of status
-     * field is used to mark which queue a node is on.
+     * <p>Threads waiting on Conditions(条件) use the same nodes, but
+     * use an additional(附加的) link. Conditions only need to link nodes
+     * in simple (non-concurrent) linked queues(链式队列) because they are
+     * only accessed when exclusively held(只有被独占获取时才可以访问).
+     * Upon await(在等待时), a node is inserted into a condition queue.
+     * Upon signal(发出信号后), the node is transferred to the main queue.
+     * A special value of status field is used to mark which queue a node is on.
      *
-     * <p>Thanks go to Dave Dice, Mark Moir, Victor Luchangco, Bill
-     * Scherer and Michael Scott, along with members of JSR-166
-     * expert group, for helpful ideas, discussions, and critiques
-     * on the design of this class.
      */
     static final class Node {
         /** Marker to indicate a node is waiting in shared mode */
@@ -434,51 +440,58 @@ public abstract class AbstractQueuedSynchronizer
 
         /**
          * Status field, taking on only the values:
-         *   SIGNAL:     The successor of this node is (or will soon be)
-         *               blocked (via park), so the current node must
+         *   SIGNAL:     The successor(接替者) of this node is (or will soon be)
+         *               blocked (via park)(被阻塞), so the current node must
          *               unpark its successor when it releases or
-         *               cancels. To avoid races, acquire methods must
-         *               first indicate they need a signal,
-         *               then retry the atomic acquire, and then,
-         *               on failure, block.
+         *               cancels (当 node 要结束时，node 必须唤醒接替者) .
+         *               To avoid races(为了避免竞争), acquire methods must
+         *               first indicate(第一个表明) they need a signal,
+         *               then retry the atomic acquire(原子性的获得锁),
+         *               and then,on failure, block.
+         *
          *   CANCELLED:  This node is cancelled due to timeout or interrupt.
-         *               Nodes never leave this state. In particular,
-         *               a thread with cancelled node never again blocks.
-         *   CONDITION:  This node is currently on a condition queue.
-         *               It will not be used as a sync queue node
-         *               until transferred, at which time the status
+         *               Nodes never leave this state. (node 因为超时或者中断被标记为取消,且该状态不会再被改变)
+         *               In particular(特别的是),
+         *               a thread with cancelled node never again blocks(具有取消节点的线程再也不会阻塞).
+         *
+         *   CONDITION:  This node is currently on a condition queue. 节点当前正在一个条件队列上
+         *               It will not be used as a sync queue node(同步队列节点)
+         *               until transferred(直到被转移/转换), at which time(在这个时候) the status
          *               will be set to 0. (Use of this value here has
          *               nothing to do with the other uses of the
-         *               field, but simplifies mechanics.)
-         *   PROPAGATE:  A releaseShared should be propagated to other
+         *               field, but simplifies mechanics(简化了结构).)
+         *
+         *   PROPAGATE:  A releaseShared(释放共享权限) should be propagated(传播) to other
          *               nodes. This is set (for head node only) in
-         *               doReleaseShared to ensure propagation
-         *               continues, even if other operations have
-         *               since intervened.
+         *               doReleaseShared to ensure(确保) propagation
+         *               continues, even if(即使) other operations have
+         *               since intervened(产生干扰).
          *   0:          None of the above
          *
          * The values are arranged numerically to simplify use.
-         * Non-negative values mean that a node doesn't need to
-         * signal. So, most code doesn't need to check for particular
-         * values, just for sign.
+         * Non-negative(非负的) values mean that a node doesn't need to signal.
+         * So, most code doesn't need to check for particular values(特定值), just for sign.
          *
-         * The field is initialized to 0 for normal sync nodes, and
-         * CONDITION for condition nodes.  It is modified using CAS
-         * (or when possible, unconditional volatile writes).
+         * The field is initialized to 0 for normal sync nodes(正常同步节点初始化为0),
+         * and CONDITION for condition nodes(条件节点).
+         * It is modified using CAS(CAS修改) (or when possible, unconditional volatile writes).
          */
         volatile int waitStatus;
 
         /**
          * Link to predecessor node that current node/thread relies on
-         * for checking waitStatus. Assigned during enqueuing, and nulled
-         * out (for sake of GC) only upon dequeuing.  Also, upon
-         * cancellation of a predecessor, we short-circuit while
-         * finding a non-cancelled one, which will always exist
-         * because the head node is never cancelled: A node becomes
-         * head only as a result of successful acquire. A
-         * cancelled thread never succeeds in acquiring, and a thread only
+         * for checking waitStatus.
+         * Assigned during enqueuing, and nulled out (for sake of GC) only upon dequeuing.
+         * 在分配入队期间，仅会在出队时清空（为了GC）
+         * Also, upon cancellation of a predecessor(当前置节点被删除时),
+         * we short-circuit(简短循环) while finding a non-cancelled one,
+         * which will always exist because the head node is never cancelled: A node becomes(变成)
+         * head only as(仅作为) a result of successful acquire.
+         * (因为队列的head节点永远不会被删除)
+         * A cancelled thread never succeeds in acquiring, and a thread only
          * cancels itself, not any other node.
-         * 同步队列
+         *
+         * 指向节点的前置节点
          */
         volatile Node prev;
 
@@ -486,21 +499,22 @@ public abstract class AbstractQueuedSynchronizer
          * Link to the successor node that the current node/thread
          * unparks upon release. Assigned during enqueuing, adjusted
          * when bypassing cancelled predecessors, and nulled out (for
-         * sake of GC) when dequeued.  The enq operation does not
-         * assign next field of a predecessor until after attachment,
+         * sake of GC) when dequeued.
+         * The enq operation does not assign next field of a predecessor until after attachment,
          * so seeing a null next field does not necessarily mean that
          * node is at end of queue. However, if a next field appears
          * to be null, we can scan prev's from the tail to
          * double-check.  The next field of cancelled nodes is set to
          * point to the node itself instead of null, to make life
          * easier for isOnSyncQueue.
-         * 同步队列
+         *
+         * 指向节点的后继节点
          */
         volatile Node next;
 
         /**
-         * The thread that enqueued this node.  Initialized on
-         * construction and nulled out after use.
+         * The thread that enqueued this node.
+         * Initialized on construction and nulled out after use.
          */
         volatile Thread thread;
 
@@ -526,7 +540,7 @@ public abstract class AbstractQueuedSynchronizer
         }
 
         /**
-         * 返回前置节点
+         * 获取当前节点的前置节点
          * Returns previous node, or throws NullPointerException if null.
          * Use when predecessor cannot be null.  The null check could
          * be elided, but is present to help the VM.
@@ -542,35 +556,40 @@ public abstract class AbstractQueuedSynchronizer
           }
         }
 
-        Node() {    // Used to establish initial head or SHARED marker
+        // Used to establish initial head or SHARED marker
+        Node() {
         }
 
-        Node(Thread thread, Node mode) {     // Used by addWaiter
+        // Used by addWaiter
+        Node(Thread thread, Node mode) {
             this.nextWaiter = mode;
             this.thread = thread;
         }
 
-        Node(Thread thread, int waitStatus) { // Used by Condition
+        // Used by Condition
+        Node(Thread thread, int waitStatus) {
             this.waitStatus = waitStatus;
             this.thread = thread;
         }
     }
+    ////////////------- Node 介绍 结束 ------ ////////////
+
 
     /*****************---------------------------------------------******************/
-
+    ////////////------- FIFO 等待队列结构介绍 开始 ------ ////////////
     /**
-     * Head of the wait queue, lazily initialized.  Except for
-     * initialization, it is modified only via method setHead.  Note:
-     * If head exists, its waitStatus is guaranteed not to be
-     * CANCELLED.
-     *
+     * Head of the wait queue, lazily initialized.
+     * Except for initialization(除了初始化过程), it is modified only via method setHead(只能通过 setHead 方法修改).
+     * Note: If head exists, its waitStatus is guaranteed not to be CANCELLED.
+     * (head设置后，必须保证 waitStatus 不是 CANCELLED, 因为 a thread with cancelled node never again blocks)
+     * 延迟初始化
      * FIFO 等待队列头节点
      */
     private transient volatile Node head;
 
     /**
-     * Tail of the wait queue, lazily initialized.  Modified only via
-     * method enq to add new wait node.
+     * Tail of the wait queue, lazily initialized.
+     * Modified only via method enq to add new wait node.
      * FIFO等待队列的尾节点
      */
     private transient volatile Node tail;
@@ -578,9 +597,9 @@ public abstract class AbstractQueuedSynchronizer
 
     /**
      * The synchronization state.
-     * 原子性的锁状态
-     * 代表当前锁的状态，
-     * 0代表没有被占用，大于0代表有线程持有当前锁，这个值可以大于1，是因为锁可以重入，每次重入都加1
+     * 同步状态
+     * 原子性的
+     * 0代表没有被占用，大于0代表有线程占用，这个值可以大于1，是因为锁可以重入，每次重入都加1
      *
      * volatile:
      * 保证可见性: 使得 state 可以被多个线程同时读取到最新值
@@ -594,7 +613,7 @@ public abstract class AbstractQueuedSynchronizer
      * This operation has memory semantics of a {@code volatile} read.
      * @return current state value
      *
-     * 获取当前的依赖状态值
+     * 获取当前的同步状态值
      * 内存上的读操作
      */
     protected final int getState() {
@@ -605,6 +624,7 @@ public abstract class AbstractQueuedSynchronizer
      * Sets the value of synchronization state.
      * This operation has memory semantics of a {@code volatile} write.
      * @param newState the new state value
+     * 设置同步状态值
      * 内存上的写操作
      */
     protected final void setState(int newState) {
@@ -654,6 +674,7 @@ public abstract class AbstractQueuedSynchronizer
         if (t == null) {
           // Must initialize
           // 队列为空时，初始化队列
+          // 初始化头
           if (compareAndSetHead(new Node())) {
             tail = head;
           }
@@ -709,20 +730,24 @@ public abstract class AbstractQueuedSynchronizer
 
     /**
      * Wakes up node's successor, if one exists.
-     * 唤醒可能存在的接替节点
+     * 唤醒接替节点
      * unpark 唤醒，启动
      *
      * @param node the node
      */
     private void unparkSuccessor(Node node) {
       /*
-       * If status is negative(负极的,否定的) (i.e., possibly needing signal)
+       * If status is negative(负数) (i.e., -1)
        * try to clear in anticipation of signalling.
        * 尝试从期待信号中清除？
        * It is OK if this fails or if status is changed by waiting thread.
        */
       int waitStatus = node.waitStatus;
       if (waitStatus < 0) {
+          //CANCELLED =  1; 线程被删除
+          //SIGNAL    = -1; 替代者线程需要被唤醒
+          //CONDITION = -2; 线程正在等待触发条件
+          //PROPAGATE = -3; 无条件的获取下一次共享机会
         compareAndSetWaitStatus(node, waitStatus, 0);
       }
 
@@ -748,10 +773,9 @@ public abstract class AbstractQueuedSynchronizer
     }
 
     /**
-     * Release action for shared mode -- signals successor and ensures
-     * propagation.
-     * (Note: For exclusive mode, release just amounts
-     * to calling unparkSuccessor of head if it needs signal.)
+     * Release action for shared mode
+     * -- signals successor and ensures propagation.
+     * (Note: For exclusive mode, release just amounts to calling unparkSuccessor of head if it needs signal.)
      * 共享模式的节点释放操作
      * 通知替代者,并传播
      */
@@ -1309,13 +1333,18 @@ public abstract class AbstractQueuedSynchronizer
      * @param arg the acquire argument.  This value is conveyed to
      *        {@link #tryAcquire} but is otherwise uninterpreted and
      *        can represent anything you like.
+     *
+     *  实现线程获取资源以及线程等待阻塞
      */
     public final void acquire(int arg) {
-        // 如果尝试以独占的方式获得锁失败，那么就把当前线程封装为一个Node，加入到等待队列中；
+        // 如果以独占的方式获得锁失败，那么就把当前线程封装为一个Node，加入到等待队列中；
         // 如果加入队列成功，接下来检查当前线程的节点是否应该等待(挂起)，
         // 如果当前线程所处节点的前一节点的等待状态小于0，则通过LockSupport挂起当前线程；
-        // 无论线程是否被挂起，或者挂起后被激活，都应该返回当前线程的中断状态，
+        // 无论线程是否被挂起，或者挂起后被激活，当前线程的都应该是中断状态，
         // 如果处于中断状态，需要中断当前线程。
+        // !tryAcquire 获取共享资源失败
+        // addWaiter() 方法：将当前线程结合模式封装成节点加入队列
+        // acquireQueued() 方法：队列中轮询抢占共享资源，抢占不成功则进入阻塞等待唤醒
       if (!tryAcquire(arg) && acquireQueued(addWaiter(Node.EXCLUSIVE), arg)) {
         selfInterrupt();
       }
@@ -2447,8 +2476,9 @@ public abstract class AbstractQueuedSynchronizer
     }
 
     /**
-     * Setup to support compareAndSet. We need to natively implement
-     * this here: For the sake of permitting future enhancements, we
+     * Setup to support compareAndSet.
+     * We need to natively implement this here:
+     * For the sake of permitting future enhancements, we
      * cannot explicitly subclass AtomicInteger, which would be
      * efficient and useful otherwise. So, as the lesser of evils, we
      * natively implement using hotspot intrinsics API. And while we

@@ -1,5 +1,6 @@
 package source_code.java_threadPool;
 
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.TimeUnit;
@@ -26,11 +27,23 @@ public class ThreadPoolTest {
     System.out.println(~29);
     System.out.println(Integer.toBinaryString(-30));
     System.out.println(Integer.toBinaryString(~29));
-    ThreadPoolExecutor executor = new ThreadPoolExecutor(0, Integer.MAX_VALUE, 60L, TimeUnit.SECONDS, new SynchronousQueue<Runnable>(), Executors
+    java.util.concurrent.ThreadPoolExecutor  executor = new java.util.concurrent.ThreadPoolExecutor(1, 2, 60L,
+        TimeUnit
+        .SECONDS, new
+        ArrayBlockingQueue<>(2), Executors
         .defaultThreadFactory());
-    executor.execute(() ->{
-      System.out.println("appeng");
-    });
+    for(int i=0;i<10;i++){
+
+      executor.execute(() ->{
+        try {
+          Thread.sleep(3000);
+        } catch (InterruptedException e) {
+          e.printStackTrace();
+        }
+        System.out.println("appeng"+System.currentTimeMillis());
+      });
+    }
+
     System.out.println("11111111111111111111111111100010".length());
   }
 

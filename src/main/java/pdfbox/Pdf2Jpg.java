@@ -11,7 +11,7 @@ import java.io.*;
 /**
  * pdf按页改为jpg
  */
-public class Pdf {
+public class Pdf2Jpg {
     public static void main(String[] args) throws Exception {
         pdfToImageFile();
     }

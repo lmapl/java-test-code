@@ -2,6 +2,7 @@
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.util.concurrent.locks.AbstractQueuedSynchronizer;
 
 import com.aspose.words.Document;
 import com.aspose.words.License;
