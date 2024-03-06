@@ -9,8 +9,6 @@ public class SupplierTest {
    *   返回<T>类型对象
    */
 
-
-
   public static void main(String[] args){
     //获取新对象
     Supplier<Person> personSupplier = Person::new;

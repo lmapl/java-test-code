@@ -46,16 +46,16 @@ import java.util.function.Function;
 import sun.misc.SharedSecrets;
 
 /**
- * Hash table based implementation of the <tt>Map</tt> interface.  This
- * implementation provides all of the optional map operations, and permits
- * <tt>null</tt> values and the <tt>null</tt> key.  (The <tt>HashMap</tt>
- * class is roughly equivalent to <tt>Hashtable</tt>, except that it is
- * unsynchronized and permits nulls.)  This class makes no guarantees as to
- * the order of the map; in particular, it does not guarantee that the order
- * will remain constant over time.
+ * Hash table based implementation of the <tt>Map</tt> interface.
+ * This implementation provides all of the optional map operations, and permits
+ * <tt>null</tt> values and the <tt>null</tt> key.
+ * (The HashMap class is roughly equivalent to(大致相等) Hashtable, except that it is
+ * unsynchronized and permits nulls.)
+ * This class makes no guarantees(保证) as to the order of the map;
+ * in particular(尤其), it does not guarantee that the order will remain constant over time.
  *
  * <p>This implementation provides constant-time performance for the basic
- * operations (<tt>get</tt> and <tt>put</tt>), assuming the hash function
+ * operations (<tt>get</tt> and <tt>put</tt>), assuming(假如) the hash function
  * disperses the elements properly among the buckets.  Iteration over
  * collection views requires time proportional to the "capacity" of the
  * <tt>HashMap</tt> instance (the number of buckets) plus its size (the number
@@ -241,6 +241,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
 
     /**
      * The default initial capacity - MUST be a power of two.
+     * 默认初始化的容量大小，必须是2的指数
      */
     static final int DEFAULT_INITIAL_CAPACITY = 1 << 4; // aka 16
 
@@ -248,28 +249,37 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      * The maximum capacity, used if a higher value is implicitly specified
      * by either of the constructors with arguments.
      * MUST be a power of two <= 1<<30.
+     *
+     * 最大容量
      */
     static final int MAXIMUM_CAPACITY = 1 << 30;
 
     /**
-     * The load factor used when none specified in constructor.
+     * The load factor(负载因子) used when none specified in constructor.
+     * 扩容系数；(负载因子)
      */
     static final float DEFAULT_LOAD_FACTOR = 0.75f;
 
     /**
-     * The bin count threshold for using a tree rather than list for a
-     * bin.  Bins are converted to trees when adding an element to a
-     * bin with at least this many nodes. The value must be greater
-     * than 2 and should be at least 8 to mesh with assumptions in
+     * The bin count threshold(门槛) for using a tree rather than list for a bin.
+     *
+     * Bins are converted to trees when adding an element to a
+     * bin with at least this many nodes.
+     * The value must be greater than 2 and should be at least 8 to mesh with assumptions in
      * tree removal about conversion back to plain bins upon
      * shrinkage.
+     *
+     * list基础结构转换为树形结构的对象个数门槛
+     * 当元素个数大于等于这个值时，map的数据结构，会从 list 结构转换为红黑树结构
      */
     static final int TREEIFY_THRESHOLD = 8;
 
     /**
-     * The bin count threshold for untreeifying a (split) bin during a
+     * The bin count threshold for un_treeifying a (split) bin during a
      * resize operation. Should be less than TREEIFY_THRESHOLD, and at
      * most 6 to mesh with shrinkage detection under removal.
+     *
+     * 当元素的个数小于这个值时，会从红黑树结构转换为 list 结构
      */
     static final int UNTREEIFY_THRESHOLD = 6;
 
@@ -278,6 +288,8 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      * (Otherwise the table is resized if too many nodes in a bin.)
      * Should be at least 4 * TREEIFY_THRESHOLD to avoid conflicts
      * between resizing and treeification thresholds.
+     *
+     * 树形结构的最小容量
      */
     static final int MIN_TREEIFY_CAPACITY = 64;
 
@@ -334,8 +346,9 @@ public class HashMap<K,V> extends AbstractMap<K,V>
 
     /**
      * Computes key.hashCode() and spreads (XORs) higher bits of hash
-     * to lower.  Because the table uses power-of-two masking, sets of
-     * hashes that vary only in bits above the current mask will
+     * to lower.
+     * Because the table uses power-of-two(二的幂) masking,
+     * sets of hashes that vary(变化/不同) only in bits above the current mask will
      * always collide. (Among known examples are sets of Float keys
      * holding consecutive whole numbers in small tables.)  So we
      * apply a transform that spreads the impact of higher bits
@@ -350,6 +363,10 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      */
     static final int hash(Object key) {
         int h;
+        // ^异或(相同为假、不同为真)
+        // >>> 无符号右移 (相当于除2）左边补0)
+        // 为什么要向右移动16位
+        // key.hashCode() ^ (key.hashCode() >>> 16)
         return (key == null) ? 0 : (h = key.hashCode()) ^ (h >>> 16);
     }
 
@@ -405,7 +422,8 @@ public class HashMap<K,V> extends AbstractMap<K,V>
 
     /**
      * The table, initialized on first use, and resized as
-     * necessary. When allocated, length is always a power of two.
+     * necessary.
+     * When allocated(分配), length is always a power of two.
      * (We also tolerate length zero in some operations to allow
      * bootstrapping mechanics that are currently not needed.)
      */
@@ -513,7 +531,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      * Implements Map.putAll and Map constructor.
      *
      * @param m the map
-     * @param evict false when initially constructing this map, else
+     * @param evict (驱逐) false when initially constructing this map, else
      * true (relayed to method afterNodeInsertion).
      */
     final void putMapEntries(Map<? extends K, ? extends V> m, boolean evict) {

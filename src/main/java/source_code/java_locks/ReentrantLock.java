@@ -144,8 +144,8 @@ public class ReentrantLock implements Lock, java.io.Serializable {
           }
         } else if (current == getExclusiveOwnerThread()) {
           //同一个线程再次尝试加锁：current == getExclusiveOwnerThread()
+          //重入锁可以被同一个线程多次加锁
           int nextc = c + acquires;
-          // overflow
           if (nextc < 0) {
             throw new Error("Maximum lock count exceeded");
           }
@@ -155,6 +155,11 @@ public class ReentrantLock implements Lock, java.io.Serializable {
         return false;
       }
 
+      /**
+       * "尝试"？ 为什么是尝试， 重入锁的 releases 做减法后，不一定等于0；
+       * @param releases
+       * @return
+       */
       @Override
       protected final boolean tryRelease(int releases) {
         int c = getState() - releases;
@@ -172,6 +177,10 @@ public class ReentrantLock implements Lock, java.io.Serializable {
         return free;
       }
 
+      /**
+       * 判断当前线程是否独占这个锁
+       * @return
+       */
       @Override
       protected final boolean isHeldExclusively() {
         // While we must in general read state before owner,
@@ -221,12 +230,14 @@ public class ReentrantLock implements Lock, java.io.Serializable {
          */
         @Override
         final void lock() {
-            if (compareAndSetState(0, 1)) {
-                //先尝试抢锁，抢锁成功时，设置当前线程独占锁
-              setExclusiveOwnerThread(Thread.currentThread());
-            } else{
-                acquire(1);
-            }
+          //判断锁有没有已经被占用
+          if (compareAndSetState(0, 1)) {
+            //先尝试抢锁，抢锁成功时，设置当前线程独占锁
+            setExclusiveOwnerThread(Thread.currentThread());
+          } else {
+            //锁虽然已经被占用，但仍要尝试一下抢锁
+            acquire(1);
+          }
         }
 
       /**
@@ -262,7 +273,7 @@ public class ReentrantLock implements Lock, java.io.Serializable {
         int c = getState();
         if (c == 0) {
           //第一个线程
-          //没有前任waiters：!hasQueuedPredecessors
+          //!hasQueuedPredecessors(如果队列内已经有线程再等待，当前线程就不抢锁，而是加入队尾)
           //抢锁：compareAndSetState
           if (!hasQueuedPredecessors() &&
               compareAndSetState(0, acquires)) {
@@ -307,8 +318,7 @@ public class ReentrantLock implements Lock, java.io.Serializable {
      * <p>
      * Acquires the lock if it is not held by another thread and returns
      * immediately, setting the lock hold count to one.
-     * 在 lock 没有被别的线程持有的情况下获取锁
-     * 设置锁的持有数量为 1
+     * 在 lock 没有被别的线程持有的情况下获取锁, 设置锁的持有数量为 1
      *
      * <p>
      *   If the current thread already holds the lock then the hold

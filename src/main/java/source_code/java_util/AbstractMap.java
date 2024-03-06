@@ -33,8 +33,9 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 /**
- * This class provides a skeletal(轮廓的，提纲性的) implementation(实现) of the <tt>Map</tt>
+ * This class provides a skeletal implementation(提纲性的实现) of the <tt>Map</tt>
  * interface, to minimize(减少) the effort required(所需工作量) to implement this interface.
+ * 提供了 Map 接口的提纲性的实现, 可以用来减少实现这个接口的工作量
  *
  * <p>To implement an unmodifiable(不可修改的) map,
  * the programmer(程序员) needs only to(只需要) extend this class

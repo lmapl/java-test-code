@@ -15,7 +15,8 @@ public class FunctionsTest {
     map.put("a",1);
     map.put("b",2);
     Function<String,Integer> f = Functions.forMap(map);
-    System.out.println(f.apply("a"));
+
+    System.out.println(f.apply("b"));
 
 
   }

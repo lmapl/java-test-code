@@ -20,5 +20,6 @@ public class JoinerTest {
     map.put("a",1);
     map.put("b",2);
     System.out.println( mapJoiner.join(map));
+
   }
 }
